@@ -1,0 +1,32 @@
+[
+  {
+    "name": "ghana_joint_daily",
+    "seconds": 1488.5,
+    "bytes": 161643
+  },
+  {
+    "name": "ghana_split_daily",
+    "seconds": 314.6,
+    "bytes": 161643
+  },
+  {
+    "name": "ghana_split_mask",
+    "seconds": 274.4,
+    "bytes": 161617
+  },
+  {
+    "name": "rt_split_90day",
+    "seconds": 247.0,
+    "bytes": 161565
+  },
+  {
+    "name": "validation_joint",
+    "seconds": 1421.7,
+    "bytes": 161553
+  },
+  {
+    "name": "validation_split",
+    "seconds": 263.5,
+    "bytes": 161553
+  }
+]

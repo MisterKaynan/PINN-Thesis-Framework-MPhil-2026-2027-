@@ -1,0 +1,19 @@
+{
+  "date_start": "2020-03-12",
+  "date_end": "2021-05-19",
+  "n_days": 434,
+  "n_regions": 17,
+  "total_cases": 93674,
+  "total_deaths": 783,
+  "total_recoveries": 91647,
+  "observed_days_simple": 317,
+  "observed_pct_simple": 73.0,
+  "observed_days_context": 330,
+  "unreported_days": 117,
+  "longest_gap": 14,
+  "n_gaps": 70,
+  "negative_records_clipped": 8,
+  "cases_excl_unspecified": 91946,
+  "primary_infectious_period_D": 5,
+  "n_weeks": 62
+}
