@@ -1,0 +1,14 @@
+{
+  "arm": "primary",
+  "date_start": "2020-02-20",
+  "date_end": "2020-05-20",
+  "n_days": 91,
+  "total_cases_raw": 228782.0,
+  "total_cases_corrected": 6824622.0,
+  "total_hospitalisations": 87304.0,
+  "primary_infectious_period_D": 5,
+  "n_weeks": 13,
+  "ascertainment_mode": "fixed",
+  "ratio": 6.0,
+  "warning": "Flat r=6 applied across full range -- valid only for the 2020 wave-1 window; interpret results outside that window with caution."
+}

@@ -6,30 +6,30 @@
     "hidden_R": 100,
     "layers": 4,
     "lr": 0.001,
-    "epochs_joint": 900,
+    "epochs_joint": 5000,
     "epochs_split_data": 3000,
     "epochs_split_ode": 1000,
-    "batch_size": 0,
+    "batch_size": 100,
+    "batch_size_data": 10,
     "plateau_patience": 200,
     "plateau_factor": 0.5,
-    "seed": 34
+    "seed": 34,
+    "device": "auto"
   },
   "case4": {
     "split": {
-      "err_I": 0.1314,
-      "err_Rt": 0.4912,
+      "err_I": 0.13140575710520916,
+      "err_Rt": 0.4917260670212236,
       "published_err_I": 0.1331,
       "published_err_Rt": 0.4744,
-      "seconds": 309.9,
-      "note": "full-spec run on Colab L4 after stage-1 mini-batch fix"
+      "seconds": 173.0
     },
     "joint": {
-      "err_I": 0.13246796022774507,
-      "err_Rt": 0.4720229875031609,
+      "err_I": 0.14409365749765726,
+      "err_Rt": 0.4559126919312014,
       "published_err_I": 0.1411,
       "published_err_Rt": 0.4961,
-      "seconds": 1778.0,
-      "note": "full-spec run on Colab L4"
+      "seconds": 985.5
     }
   }
 }
