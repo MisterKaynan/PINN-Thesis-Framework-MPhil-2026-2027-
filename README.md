@@ -1,10 +1,10 @@
-# Resumable PINN Experiments for Sparse COVID-19 Surveillance Data
+# Resumable PINN Experiments for Sparse COVID-19 Surveillance Data (Thesis Title: Physics-Informed Neural Networks for Infectious-Disease Modelling under Ghanaian Surveillance Constraints: An Adaptation of Millevoi et al’s Compartmental Model by Atua-Ntow, 2026/2027)
 
 A reproducible experiment pipeline for evaluating a reduced SIR Physics-Informed Neural Network (PINN) under realistic surveillance-data limitations. The project compares Ghana's authentic reporting gaps with controlled sparsification of Italian surveillance data, using a split-versus-joint PINN design adapted from Millevoi, Pasetto, and Ferronato (2024).
 
 This repository is designed for an MPhil Data Science thesis workflow: it separates the core Ghana–Italy-primary comparison from an optional Italy-secondary, multi-wave robustness arm; supports free-tier notebook constraints; and preserves completed experiment results through checkpointed CSV outputs.
 
-> **Research use notice.** This repository is for research and educational use. It does not provide clinical forecasts, public-health guidance, or operational estimates of disease transmission. Any inferred reproduction-number results are model-derived and require epidemiological interpretation.
+> **Research use notice.** This repository is primarily for research and educational use. It does not provide clinical forecasts, public-health guidance, or operational estimates of disease transmission. Any inferred reproduction-number results are model-derived and require epidemiological interpretation.
 
 ## Research question
 
@@ -237,7 +237,7 @@ python src/run_parallel.py \
 
 ### Resumable single-GPU/CPU runner
 
-For a free-tier, interruptible runtime, use `checkpoint_grid_runner.py`. It atomically rewrites the output CSV after every completed fit. On restart, rerun the exact same command; already completed `(origin, regime, method, seed)` combinations are skipped.
+For a free-tier on something like Colab, interruptible runtime, use `checkpoint_grid_runner.py`. It atomically rewrites the output CSV after every completed fit. On restart, rerun the exact same command; already completed `(origin, regime, method, seed)` combinations are skipped.
 
 ```bash
 PYTHONPATH=src python src/checkpoint_grid_runner.py \
@@ -255,7 +255,7 @@ The same command resumes work in a later session. Omit `--max-fits` when the env
 
 ### Kaggle one- or two-GPU runner
 
-`run_dual_gpu_shards.py` is designed for Kaggle or another environment where one or more CUDA GPUs are exposed. It does not assume that two GPUs exist. At startup it detects visible devices and uses one process per available GPU. If only one GPU is assigned, it runs correctly with one worker.
+`run_dual_gpu_shards.py` is designed for Kaggle or another environment where one or more CUDA GPUs are exposed. It does not assume that two GPUs exist. At startup, it detects visible devices and uses one process per available GPU. If only one GPU is assigned, it runs correctly with one worker.
 
 Before running it, inspect the allocated hardware:
 
