@@ -1,0 +1,15 @@
+{
+  "arm": "secondary",
+  "date_start": "2020-01-29",
+  "date_end": "2022-10-23",
+  "n_days": 999,
+  "total_cases_raw": 23300510.0,
+  "total_cases_corrected": 8148840.0,
+  "total_hospitalisations": 684497.0,
+  "primary_infectious_period_D": 5,
+  "n_weeks": 143,
+  "ascertainment_mode": "restrict",
+  "ratio": 6.0,
+  "valid_until": "2020-08-31",
+  "note": "Corrected infections are NaN beyond the r=6-valid window; raw new_infections retained for that period instead. Use raw counts, not corrected, past this date."
+}

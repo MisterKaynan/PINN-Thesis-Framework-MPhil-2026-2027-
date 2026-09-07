@@ -1,0 +1,8 @@
+{
+  "params_used": "dwomoh_scenario5",
+  "q_frac": 0.15,
+  "q_lag": 3,
+  "max_H": 1995.4449959084893,
+  "mean_H": 846.383230427528,
+  "warning": "MODEL-DERIVED, NOT OBSERVED DATA. Ablation use only."
+}
