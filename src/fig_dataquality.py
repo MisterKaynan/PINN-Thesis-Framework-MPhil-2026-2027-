@@ -38,14 +38,14 @@ italy_primary_path = Path("data/processed/italy_primary_national_master.csv")
 italy_secondary_path = Path("data/processed/italy_secondary_national_master.csv")
 
 n_panels = 1 + int(italy_primary_path.exists()) + int(italy_secondary_path.exists())
-fig = plt.figure(figsize=(9, 3.6 * n_panels))
-gs_top = fig.add_gridspec(n_panels, 1, hspace=0.55)
+fig = plt.figure(figsize=(10, 4.8 * n_panels))
+gs_top = fig.add_gridspec(n_panels, 1, hspace=0.5)
 row = 0
 
 
 def panel_ghana(outer_gs):
     m = pd.read_csv(ghana_path, index_col=0, parse_dates=True)
-    inner = outer_gs.subgridspec(2, 1, height_ratios=[3, 1], hspace=0.12)
+    inner = outer_gs.subgridspec(2, 1, height_ratios=[2.4, 1.6], hspace=0.32)
     ax0 = fig.add_subplot(inner[0]); ax1 = fig.add_subplot(inner[1], sharex=ax0)
 
     ax0.fill_between(m.index, m.daily_incidence, color='#c8d8e8', lw=0)
@@ -63,12 +63,13 @@ def panel_ghana(outer_gs):
 
     gl = m.gap_length.where(m.gap_length > 0, 0) if "gap_length" in m.columns else pd.Series(0, index=m.index)
     ax1.bar(m.index, gl, color='#d94f4f', width=1.0)
-    ax1.set_ylabel('Gap\nlength (d)', fontsize=8)
+    ax1.set_ylabel('Gap length (days)', fontsize=8)
     ax1.set_xlabel('Date')
     if gl.max() > 0:
         peak_date = gl.idxmax()
+        ax1.set_ylim(0, gl.max() * 1.25)
         ax1.annotate(f'{int(gl.max())}-day gap', xy=(peak_date, gl.max()),
-                    xytext=(peak_date, gl.max() * 0.85), fontsize=7.5,
+                    xytext=(peak_date, gl.max() * 1.08), va='bottom', fontsize=7.5,
                     arrowprops=dict(arrowstyle='->', lw=0.7, color='#555'))
     for a in (ax0, ax1):
         a.spines[['top', 'right']].set_visible(False)

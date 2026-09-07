@@ -22,14 +22,14 @@
       "err_Rt": 0.4917260670212236,
       "published_err_I": 0.1331,
       "published_err_Rt": 0.4744,
-      "seconds": 173.0
+      "seconds": 153.9
     },
     "joint": {
       "err_I": 0.14409365749765726,
       "err_Rt": 0.4559126919312014,
       "published_err_I": 0.1411,
       "published_err_Rt": 0.4961,
-      "seconds": 985.5
+      "seconds": 849.8
     }
   }
 }
