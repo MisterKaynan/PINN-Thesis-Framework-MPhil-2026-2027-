@@ -1,0 +1,3 @@
+test,country,method,n,regimes,statistic,p_value,ghana_regime,italy_arm,italy_regime,n_ghana,n_italy,median_ghana,median_italy,caveat
+friedman_across_regimes,ghana,pinn_split,6.0,"['daily', 'mask', 'weekly']",4.333333333333329,0.11455884399268802,,,,,,,,
+mannwhitney_clustered_vs_random,,,,,100.0,0.0012226441597037408,mask,italy_primary,sparse30,12.0,9.0,5.948775503854378,2.1779250003926376,Clean comparison: both series are single-wave-comparable (italy_primary is Millevoi-window matched).

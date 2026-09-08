@@ -68,7 +68,8 @@ def infer_rt(I: pd.Series, gamma: float = 1 / 5.0) -> pd.Series:
     I = I.astype(float)
     dI = I.diff().fillna(0.0)
     rt = 1.0 + (dI / (gamma * I.replace(0, np.nan)))
-    return rt.replace([np.inf, -np.inf], np.nan).fillna(method="ffill")
+    # return rt.replace([np.inf, -np.inf], np.nan).fillna(method="ffill")
+    return rt.replace([np.inf, -np.inf], np.nan).ffill()
 
 
 def plot_rt(date_index: pd.Index,
