@@ -4,7 +4,7 @@ Extract effective reproduction number R_t from fitted PINN trajectories.
 
 v2: country-aware, two-arm compatible.
 
-CHANGES FROM v1 (extract_rt.py as originally attached)
+CHANGES FROM v1 (extract_rt_v1.py as originally attached)
     1. The script was hard-wired to Ghana: default master file
        ghana_national_master.csv, Ghana-only plot title, and Dwomoh et al.
        reference values baked in as the *only* external check. Running it
