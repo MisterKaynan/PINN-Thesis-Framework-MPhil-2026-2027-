@@ -1,3 +1,11 @@
-test,country,method,n,regimes,statistic,p_value,ghana_regime,italy_arm,italy_regime,n_ghana,n_italy,median_ghana,median_italy,caveat
-friedman_across_regimes,ghana,pinn_split,6.0,"['daily', 'mask', 'weekly']",4.333333333333329,0.11455884399268802,,,,,,,,
-mannwhitney_clustered_vs_random,,,,,100.0,0.0012226441597037408,mask,italy_primary,sparse30,12.0,9.0,5.948775503854378,2.1779250003926376,Clean comparison: both series are single-wave-comparable (italy_primary is Millevoi-window matched).
+test,country,regime,n,statistic,p_value,median_split,median_joint,method,regimes,ghana_regime,italy_arm,italy_regime,n_ghana,n_italy,median_ghana,median_italy,caveat
+wilcoxon_split_vs_joint,ghana,daily,12.0,7.0,0.00927734375,4.886927099908382,8.026685332321538,,,,,,,,,,
+wilcoxon_split_vs_joint,ghana,mask,12.0,15.0,0.06396484375,5.948775503854378,10.192709182630697,,,,,,,,,,
+wilcoxon_split_vs_joint,ghana,weekly,6.0,6.0,0.4375,1.8103910787811244,1.983835124961903,,,,,,,,,,
+wilcoxon_split_vs_joint,italy_primary,daily,9.0,16.0,0.49609375,2.1386657901624444,1.938998361066612,,,,,,,,,,
+wilcoxon_split_vs_joint,italy_primary,sparse20,9.0,8.0,0.09765625,1.5912862993152408,3.213147420908312,,,,,,,,,,
+wilcoxon_split_vs_joint,italy_primary,sparse30,9.0,9.0,0.12890625,2.1779250003926376,2.1897620569088456,,,,,,,,,,
+wilcoxon_split_vs_joint,italy_primary,sparse40,9.0,8.0,0.09765625,2.190164624625686,2.914486703666185,,,,,,,,,,
+friedman_across_regimes,ghana,,9.0,2.0,0.36787944117144245,,,pinn_joint,"['daily', 'mask', 'weekly']",,,,,,,,
+friedman_across_regimes,ghana,,6.0,4.333333333333329,0.11455884399268802,,,pinn_split,"['daily', 'mask', 'weekly']",,,,,,,,
+mannwhitney_clustered_vs_random,,,,426.0,2.3555897883376784e-05,,,,,mask,italy_primary,sparse30,27.0,18.0,7.761420589684457,2.1838435286507414,Clean comparison: both series are single-wave-comparable (italy_primary is Millevoi-window matched).
