@@ -1,0 +1,119 @@
+{
+  "schema_version": 2,
+  "audit_status": "passed",
+  "country": "ghana",
+  "synthetic_channel": true,
+  "observed_hospitalisation_data": false,
+  "training_target_column": "dH_in_synthetic_<scenario>",
+  "training_target_definition": "daily admissions = sigma*Q + psi*I",
+  "compatibility_alias": {
+    "column": "H_synthetic_seiqhrs",
+    "scenario": "dwomoh_s4_s5",
+    "meaning": "daily synthetic admission inflow, not occupancy"
+  },
+  "admissions_aliases": "H_admissions_synthetic_<scenario> is numerically identical to dH_in_synthetic_<scenario>; use dH_in as the PINN training target.",
+  "input_definition": {
+    "daily_incidence_column": "daily_incidence",
+    "existing_I_proxy_column": "I_proxy",
+    "existing_I_proxy_definition": "trailing 5-day sum of daily_incidence",
+    "infectious_prevalence_proxy": "trailing 14-day sum of daily_incidence",
+    "assumption": "A 14-day infectious period is used to approximate prevalent I; this is model-derived from reported incidence, not observed I.",
+    "incidence_reporting_gaps": "The Ghana source master encodes missing reports as zero. The synthetic channel inherits this limitation and does not impute unreported cases."
+  },
+  "equations": {
+    "quarantine": "dQ/dt = delta_q*I - (xi+n+sigma)*Q",
+    "daily_admission_inflow": "H_admissions = sigma*Q + psi*I",
+    "occupancy_diagnostic": "dH/dt = sigma*Q + psi*I - (tau+xi+alpha)*H",
+    "integration": "explicit Euler, dt=1 day, Q(0)=H(0)=0",
+    "omitted_term": "phi*E omitted because the source master has no exposed E series",
+    "training_semantics": "The model's auxiliary H output is trained on daily admission inflow; H occupancy is diagnostic only."
+  },
+  "scenarios": {
+    "dwomoh_s2_s3": {
+      "source_scenarios": "2 and 3",
+      "parameters": {
+        "sigma": 0.1,
+        "psi": 0.008333333333333333,
+        "tau": 0.0,
+        "alpha": 0.02,
+        "xi": 1.978e-05,
+        "delta_q": 0.008333333333333333,
+        "n": 0.0
+      },
+      "admissions_finite": true,
+      "admissions_nonnegative": true,
+      "admissions_positive_days": 434,
+      "admissions_total": 21719.813095935926,
+      "admissions_max": 159.7454449346855,
+      "occupancy_finite": true,
+      "occupancy_nonnegative": true,
+      "occupancy_max": 4630.333019063395
+    },
+    "dwomoh_s4_s5": {
+      "source_scenarios": "4 and 5",
+      "parameters": {
+        "sigma": 0.1,
+        "psi": 0.008333333333333333,
+        "tau": 0.008333333333333333,
+        "alpha": 0.02,
+        "xi": 1.978e-05,
+        "delta_q": 0.008333333333333333,
+        "n": 0.008333333333333333
+      },
+      "admissions_finite": true,
+      "admissions_nonnegative": true,
+      "admissions_positive_days": 434,
+      "admissions_total": 20892.18822332148,
+      "admissions_max": 155.51082622713577,
+      "occupancy_finite": true,
+      "occupancy_nonnegative": true,
+      "occupancy_max": 3636.753029359322
+    }
+  },
+  "cross_paper_parameter_comparison": {
+    "Dwomoh_direct_I_to_H_rate_psi_per_day": 0.008333333333333333,
+    "assumed_Millevoi_delta_per_day": 0.2,
+    "dimensional_equivalent_sigma": 0.041666666666666664,
+    "reported_Millevoi_sigma_range": [
+      0.03,
+      0.23
+    ],
+    "within_reported_range": true,
+    "interpretation": "Dimensional comparison under assumptions only; not a fitted equivalence or validation of the synthetic Ghana series."
+  },
+  "paper_reference_diagnostics_not_targets": {
+    "Dwomoh": {
+      "scenario_1_H_max": 0.0,
+      "scenario_2_H_day_365_approx": 900.0,
+      "scenario_3_H_day_365_approx": 820.0,
+      "scenario_4_H_day_365_approx": 420.0,
+      "scenario_5_H_peak_approx": 7.0,
+      "scenario_5_peak_day_approx": 200,
+      "interpretation": "Paper model outputs only; different from this reduced incidence-driven construction and not observed Ghana admissions or acceptance thresholds."
+    },
+    "Millevoi_fig11": {
+      "visual_point_readings": true,
+      "approximate_relative_uncertainty": "10-15%",
+      "use": "Do not use the visual readings as training targets; use actual ISS data for quantitative estimation."
+    }
+  },
+  "audit_checks": {
+    "daily_dates_consecutive": true,
+    "daily_incidence_finite_nonnegative": true,
+    "I_proxy_matches_trailing_5_day_incidence": true,
+    "infectious_proxy_is_trailing_14_day_incidence": true,
+    "scenario1_excluded": true,
+    "Q_equation_omits_phi_E_due_to_no_E_series": true,
+    "training_channel_is_daily_admission_inflow": true,
+    "occupancy_retained_as_diagnostic_only": true,
+    "required_scenario_columns_present": true,
+    "admissions_aliases_match": true,
+    "compatibility_alias_matches_default_training_target": true,
+    "all_scenarios_finite_nonnegative": true
+  },
+  "master_csv": "D:\\Anaconda Python Files\\GitHub\\PINN-Thesis-Framework-MPhil-2026-2027-\\data\\processed\\ghana_national_master.csv",
+  "master_sha256": "40af3ba762ce52fd11a80e588b3d31b539ba9b3851e6169fadf72501fccc01e0",
+  "output_csv": "D:\\Anaconda Python Files\\GitHub\\PINN-Thesis-Framework-MPhil-2026-2027-\\data\\processed\\ghana_hospitalisation_synth.csv",
+  "output_rows": 434,
+  "output_sha256": "b1a9c78b25772a52694c015b854fef9ad1b91959a5e07457608bbd4747bc471d"
+}

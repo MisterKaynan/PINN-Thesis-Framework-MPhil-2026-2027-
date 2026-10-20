@@ -6,8 +6,9 @@ auxiliary-channel ablation. It is not Ghana hospital surveillance data and
 must not be described as observed admissions.
 
 The reduced construction follows the definitions supplied for Dwomoh et al.:
-daily admissions are the inflow ``sigma * Q + psi * I``; Q follows its
-I-driven equation with no ``phi * E`` term because no exposed series is
+daily admissions are the inflow 
+``sigma * Q + psi * I``; 
+Q follows its I-driven equation with no ``phi * E`` term because no exposed series is
 available. Daily incidence is converted to an approximate infectious
 prevalence using a trailing 14-day sum. Occupancy is retained as a diagnostic,
 but is not the PINN training target.

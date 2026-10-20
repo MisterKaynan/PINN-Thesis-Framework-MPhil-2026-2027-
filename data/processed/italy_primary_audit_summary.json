@@ -1,0 +1,30 @@
+{
+  "version": 3,
+  "arm": "primary",
+  "country": "italy_primary",
+  "date_start": "2020-02-20",
+  "date_end": "2020-05-20",
+  "n_days": 91,
+  "n_weeks": 13,
+  "ascertainment_mode": "fixed",
+  "ratio": 6.0,
+  "valid_until": null,
+  "total_cases_raw": 228782.0,
+  "total_cases_corrected": 1372692.0,
+  "total_cases_corrected_defined_only": 1372692.0,
+  "corrected_undefined_days": 0,
+  "proxy_undefined_days": 0,
+  "total_hospitalisations": 87304.0,
+  "primary_infectious_period_D": 5,
+  "missing_days_policy": "error",
+  "imputed_zero_days": 0,
+  "training_ready": true,
+  "target_basis": "ascertainment-adjusted incidence",
+  "notes": [
+    "Restricted mode uses raw reported incidence after valid_until; unknown correction is never represented as zero.",
+    "Rolling proxies are not summed as case totals.",
+    "Configured dates and correction assumptions require study-specific justification.",
+    "Zero imputation applies only to dates missing from the source and only when --missing-days zero is explicitly selected."
+  ],
+  "input_sha256": "44b73a97bfd94609d94a3185474bcb4ea6a3b05eb77950d30134d143583a04b9"
+}
