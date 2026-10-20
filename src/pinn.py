@@ -26,8 +26,27 @@ LOSSES
     split   : stage 1 fits I_s on data alone; stage 2 fits R_t on the
               residual with I_s frozen                           (Eq 16)
 
-    Because L_D and L_rODE are of consistent magnitude in the reduced model,
-    no loss-balancing weights are needed (paper Sec 2.3). This is why we can
+EXTENSION FOR THIS EXPERIMENT
+    The primary ReducedSIRPINN remains the paper's infection-only reduced-SIR
+    model. ReducedSIRHospitalisationPINN is a separate auxiliary-channel
+    ablation: it adds a non-negative H output head sharing the infection
+    feature trunk, plus a supervised H data loss, while keeping the published
+    I/R_t residual unchanged. The shared trunk makes the auxiliary channel
+    capable of changing the learned infection representation. It does NOT add
+    a hospitalisation ODE residual. In particular, Ghana's H series is
+    synthesized from a 14-day incidence-based I approximation and assumed
+    Dwomoh parameters through a reduced Q equation. Those assumptions are not
+    validated hospitalisation physics, so they are not added as a second
+    physical residual.
+
+    In the ablation, normalize H by its own scale and add
+        L_H = mean[(H_s(t_j) - H_obs,s,j)^2]
+    so the joint objective is L_D + L_H + L_rODE; split stage 1 fits
+    L_D + L_H and stage 2 retains L_rODE. Equal channel weights are a declared
+    experimental choice, not a claim from the paper.
+
+    For the primary reduced model, L_D and L_rODE are of consistent magnitude,
+    so no loss-balancing weights are needed (paper Sec 2.3). This is why we can
     drop SciANN's NTK adaptive weighting without penalty.
 
 DELIBERATE DEVIATIONS FROM THE REFERENCE (declare these in the report)
@@ -84,6 +103,39 @@ class MLP(nn.Module):
         return self.net(t) ** 2
 
 
+class InfectionHospitalisationMLP(nn.Module):
+    """Two non-negative outputs sharing an infection-time feature trunk.
+
+    The infection head retains the paper's squared scalar output. The H head
+    has its own small hidden layer but shares the learned time representation,
+    allowing its data loss to influence the representation used by I.
+    """
+
+    def __init__(self, hidden_I: int, hidden_H: int, layers: int = 4):
+        super().__init__()
+        trunk_layers = []
+        input_width = 1
+        for _ in range(layers):
+            trunk_layers.extend([nn.Linear(input_width, hidden_I), nn.Tanh()])
+            input_width = hidden_I
+        self.trunk = nn.Sequential(*trunk_layers)
+        self.I_head = nn.Linear(hidden_I, 1)
+        self.H_head = nn.Sequential(
+            nn.Linear(hidden_I, hidden_H),
+            nn.Tanh(),
+            nn.Linear(hidden_H, 1),
+        )
+        self.apply(MLP._glorot)
+
+    def forward(self, t: torch.Tensor) -> torch.Tensor:
+        """Return the infection output for compatibility with the SIR residual."""
+        return self.I_head(self.trunk(t)) ** 2
+
+    def hospitalisation(self, t: torch.Tensor) -> torch.Tensor:
+        """Return the auxiliary hospitalisation output from the shared trunk."""
+        return self.H_head(self.trunk(t)) ** 2
+
+
 @dataclass
 class Config:
     delta: float = 0.2          # 1/5 d^-1, infectious period D = 5 (paper Sec 2.5)
@@ -101,6 +153,7 @@ class Config:
     plateau_factor: float = 0.5
     seed: int = 34              # reference notebook uses 34
     device: str = "auto"        # "auto" | "cpu" | "cuda"
+    hidden_H: int = 50          # auxiliary H head width; used only by ablation model
 
 
 class ReducedSIRPINN:
@@ -155,7 +208,7 @@ class ReducedSIRPINN:
 
     def _run_minibatch(self, params, t_data, I_obs, t_c, epochs, tag,
                        use_data=True, use_ode=True, log_every=500,
-                       batch_override=None):
+                       batch_override=None, H_obs=None):
         """
         Mini-batch loop, following the reference implementation.
 
@@ -180,6 +233,14 @@ class ReducedSIRPINN:
         is_data = torch.zeros(pooled.shape[0], dtype=torch.bool)
         is_data[:n_d] = True
         targets = torch.cat([I_obs, torch.zeros_like(t_c)], dim=0)
+        # The hospitalisation ablation supplies H_obs at the same observation
+        # times as I. The baseline path leaves H_obs unset and retains its
+        # original objective exactly.
+        targets_H = (
+            torch.cat([H_obs, torch.zeros_like(t_c)], dim=0)
+            if H_obs is not None
+            else None
+        )
 
         for ep in range(epochs):
             perm = torch.randperm(pooled.shape[0])
@@ -191,6 +252,11 @@ class ReducedSIRPINN:
                 loss = torch.zeros((), dtype=torch.float32, device=self.device)
                 if use_data and db.any():
                     loss = loss + ((self.I_net(tb[db]) - yb[db]) ** 2).mean()
+                    if targets_H is not None:
+                        h_target = targets_H[idx][db]
+                        loss = loss + (
+                            (self.H_net(tb[db]) - h_target) ** 2
+                        ).mean()
                 if use_ode and (~db).any():
                     loss = loss + (self._residual(tb[~db]) ** 2).mean()
                 loss.backward()
@@ -249,6 +315,128 @@ class ReducedSIRPINN:
         t_s = t_s.to(self.device)
         return (self.I_net(t_s).cpu().numpy().ravel() * self.scale_I,
                 self.R_net(t_s).cpu().numpy().ravel())
+
+
+class ReducedSIRHospitalisationPINN(ReducedSIRPINN):
+    """Separate reduced-SIR model with an auxiliary supervised H output.
+
+    The original two-output behavior of :class:`ReducedSIRPINN` is untouched.
+    This subclass replaces only its infection MLP with a shared-trunk
+    I/H-output network. Its normalized squared H data loss is added to the I
+    data loss; the reduced-SIR physics residual still constrains only I and
+    R_t, exactly as in the primary model. No hospitalisation ODE is claimed.
+
+    ``H_obs`` passed to fit methods must be non-negative and normalized by the
+    same ``scale_H`` supplied at construction. ``predict`` returns
+    ``(I_pred, R_net, H_pred)`` in original I/H scales.
+    """
+
+    def __init__(self, cfg: Config, tf: float, scale_I: float, scale_H: float):
+        if not np.isfinite(scale_H) or scale_H <= 0:
+            raise ValueError("scale_H must be finite and positive")
+        super().__init__(cfg, tf=tf, scale_I=scale_I)
+        self.scale_H = float(scale_H)
+        # The additional H head shares features with I, so H supervision can
+        # affect the infection estimate; R_net remains a separate ODE head.
+        self.I_net = InfectionHospitalisationMLP(
+            cfg.hidden_I, cfg.hidden_H, cfg.layers
+        ).to(self.device)
+        self.H_net = self.I_net.hospitalisation
+
+    def _validate_H_obs(self, t_data: torch.Tensor, H_obs: torch.Tensor) -> torch.Tensor:
+        """Validate normalized H targets and align them with the model device."""
+        H_obs = H_obs.to(self.device)
+        if H_obs.shape != t_data.shape:
+            raise ValueError(
+                f"H_obs shape {tuple(H_obs.shape)} must match t_data "
+                f"shape {tuple(t_data.shape)}"
+            )
+        if not torch.isfinite(H_obs).all():
+            raise ValueError("H_obs must contain only finite normalized values")
+        if (H_obs < 0).any():
+            raise ValueError("H_obs must be non-negative")
+        return H_obs
+
+    def fit_joint(self, t_data, I_obs, H_obs):
+        """Jointly fit I, R_t, and auxiliary H data with the I ODE residual."""
+        t_data, I_obs = t_data.to(self.device), I_obs.to(self.device)
+        H_obs = self._validate_H_obs(t_data, H_obs)
+        t_c = self._collocation()
+        # I_net owns both shared I/H heads and their common trunk.
+        params = list(self.I_net.parameters()) + list(self.R_net.parameters())
+        t0 = time.time()
+        final = self._run_minibatch(
+            params,
+            t_data,
+            I_obs,
+            t_c,
+            self.cfg.epochs_joint,
+            "hospitalisation_joint",
+            H_obs=H_obs,
+        )
+        return {
+            "mode": "joint",
+            "final_loss": final,
+            "seconds": time.time() - t0,
+            "hospitalisation_channel": "auxiliary_supervised",
+        }
+
+    def fit_split(self, t_data, I_obs, H_obs):
+        """Fit I/H observations first, then calibrate R_t as in Eq 16."""
+        t_data, I_obs = t_data.to(self.device), I_obs.to(self.device)
+        H_obs = self._validate_H_obs(t_data, H_obs)
+        t_c = self._collocation()
+        t0 = time.time()
+
+        # Split stage 1 fits both observed channels using equally weighted MSEs
+        # after each channel is normalized by its own declared scale.
+        data_params = list(self.I_net.parameters())
+        data_loss = self._run_minibatch(
+            data_params,
+            t_data,
+            I_obs,
+            t_data[:0],
+            self.cfg.epochs_split_data,
+            "hospitalisation_split_data",
+            use_ode=False,
+            batch_override=self.cfg.batch_size_data,
+            H_obs=H_obs,
+        )
+
+        # Split stage 2 is unchanged scientifically: freeze I and fit R_t to
+        # the original reduced-SIR residual. The auxiliary H network does not
+        # enter that residual and remains at its supervised stage-1 fit.
+        for parameter in self.I_net.parameters():
+            parameter.requires_grad_(False)
+        ode_loss = self._run_minibatch(
+            list(self.R_net.parameters()),
+            t_data[:0],
+            I_obs[:0],
+            t_c,
+            self.cfg.epochs_split_ode,
+            "hospitalisation_split_ode",
+            use_data=False,
+        )
+        for parameter in self.I_net.parameters():
+            parameter.requires_grad_(True)
+
+        return {
+            "mode": "split",
+            "final_loss_data": data_loss,
+            "final_loss_ode": ode_loss,
+            "seconds": time.time() - t0,
+            "hospitalisation_channel": "auxiliary_supervised",
+        }
+
+    @torch.no_grad()
+    def predict(self, t_s: torch.Tensor):
+        """Return fitted I, learned R_t, and auxiliary H in original units."""
+        t_s = t_s.to(self.device)
+        return (
+            self.I_net(t_s).cpu().numpy().ravel() * self.scale_I,
+            self.R_net(t_s).cpu().numpy().ravel(),
+            self.I_net.hospitalisation(t_s).cpu().numpy().ravel() * self.scale_H,
+        )
 
 
 def relative_error(pred: np.ndarray, ref: np.ndarray) -> float:

@@ -183,6 +183,71 @@ PYTHONPATH=src python src/pinn.py \
 
 If the implementation is materially inconsistent with the published benchmark, stop and diagnose the Case 4 input, scaling, time normalization, seed, batching, collocation count, and epoch settings before investing compute in country experiments.
 
+### Separate hospitalisation-channel ablation
+
+`ReducedSIRPINN` remains the primary infection-only model and its API is
+unchanged. For a distinct auxiliary-channel ablation,
+`ReducedSIRHospitalisationPINN` adds a non-negative `H_net(t)` head that
+shares the infection-time feature trunk. The channel-normalized supervised H
+loss can therefore affect the shared representation used by the infection
+output. Normalize H by its own positive scale before fitting; `predict()`
+returns `(I_pred, R_net, H_pred)` with I and H returned in their original
+units.
+
+The H channel is intentionally supervised-only: the reduced-SIR residual
+continues to constrain I and `R_net`, and no hospitalisation ODE is added.
+For Ghana, the training target is `dH_in_synthetic_<scenario>`, the synthetic
+daily admission inflow (`sigma*Q + psi*I`), not occupancy and not observed
+hospitalisation data.
+Its generating script verifies the Ghana five-day `I_proxy`, derives a
+separate approximate I series from a trailing 14-day sum of daily incidence,
+and evolves Q using `dQ/dt = delta_q*I - (xi+n+sigma)*Q`. The 14-day duration,
+zero-encoded reporting gaps, and Dwomoh parameter scenarios remain explicit
+assumptions; the exposed-compartment term is omitted because no E series is
+available. Occupancy is exported for diagnostics but is never used as the
+auxiliary training target. Therefore this is an exploratory sensitivity
+ablation, not replication of Millevoi's two-observed-channel model or a
+primary result. Use aligned observations at the same training dates for I and
+H, and label Ghana H as synthetic in all outputs and reporting.
+
+The class-level API expects I and H targets normalized by their own scales:
+
+```python
+from pinn import Config, ReducedSIRHospitalisationPINN
+
+model = ReducedSIRHospitalisationPINN(
+    Config(seed=1), tf=len(I_values), scale_I=I_scale, scale_H=H_scale
+)
+model.fit_joint(t_scaled, I_values_scaled, H_values_scaled)
+I_pred, R_net, H_pred = model.predict(t_scaled)
+```
+
+For split training, call `fit_split(t_scaled, I_values_scaled,
+H_values_scaled)`. H must be aligned to the same time points passed as
+`t_scaled`; do not pass unobserved or synthetic H values as if they were
+surveillance observations. The end-to-end synthesis and matched runner are:
+
+```bash
+python src/synth_hospitalisation.py \
+  --master data/processed/ghana_national_master.csv \
+  --out data/processed/ghana_hospitalisation_synth.csv
+
+python src/run_ghana_hospitalisation_ablation.py \
+  --master data/processed/ghana_national_master.csv \
+  --hospitalisation data/processed/ghana_hospitalisation_synth.csv \
+  --out results/tables/ghana_hospitalisation_ablation.csv \
+  --origins 45 60 75 --horizon 15 \
+  --regimes daily weekly mask --modes split joint --seeds 34 \
+  --scenarios dwomoh_s2_s3 dwomoh_s4_s5
+```
+
+Both scripts write JSON audits. The runner validates synthesis provenance,
+date alignment, the master-file hash, finite nonnegative admissions, and
+matched infection-only versus auxiliary-channel output rows. Training
+normalization uses each origin/regime's training data only. Results compare
+the same forecast protocol and report paired MASE differences; the synthetic
+channel remains explicitly marked as model-derived, never as surveillance.
+
 ## Experiment protocol
 
 The forecasting protocol is expanding-origin:
@@ -192,7 +257,7 @@ The forecasting protocol is expanding-origin:
 3. Repeat the exact origin/regime/seed combination for split and joint modes.
 4. Use MASE as the primary accuracy metric; MAE and RMSE are supplementary.
 
-Use the same core model, infection-proxy convention, forecast horizon, metric definitions, and random seeds across country arms. Ghana uses origins `60 75 90 105` to provide a comparable range of training-window lengths. Italy-primary must only use origins that leave at least 15 future days in its actual processed window.
+Use the same core model, infection-proxy convention, forecast horizon, metric definitions, random seeds, and training origins across the main country arms. Ghana and Italy-primary default to origins `45 60 75` with a 15-day horizon; these are feasible for Italy-primary's 91-day window. Each runner validates that every requested origin leaves a complete forecast horizon in its processed master.
 
 ### Observation regimes
 
@@ -228,7 +293,7 @@ python src/run_parallel.py \
   --master data/processed/ghana_national_master.csv \
   --out results/tables/grid_ghana_split.csv \
   --workers 4 \
-  --origins 60 75 90 105 \
+  --origins 45 60 75 \
   --regimes daily weekly mask \
   --modes split \
   --seeds 1 2 3 \
@@ -241,9 +306,10 @@ For a free-tier on something like Colab, interruptible runtime, use `checkpoint_
 
 ```bash
 PYTHONPATH=src python src/checkpoint_grid_runner.py \
+  --country ghana \
   --master data/processed/ghana_national_master.csv \
   --out results/tables/grid_ghana_split.csv \
-  --origins 60 75 90 105 \
+  --origins 45 60 75 \
   --regimes daily weekly mask \
   --modes split \
   --seeds 1 2 3 \
@@ -251,7 +317,27 @@ PYTHONPATH=src python src/checkpoint_grid_runner.py \
   --max-fits 6
 ```
 
-The same command resumes work in a later session. Omit `--max-fits` when the environment is persistent or you have enough time for the remaining tasks.
+The same command resumes work in a later session. The required `--country`
+selects Ghana's `mask` regime or Italy's `sparseNN` regimes. For Italy-primary,
+select the matching arm and processed master:
+
+```bash
+PYTHONPATH=src python src/checkpoint_grid_runner.py \
+  --country italy_primary \
+  --master data/processed/italy_primary_national_master.csv \
+  --out results/tables/italy_primary_grid_split.csv \
+  --origins 45 60 75 \
+  --regimes daily weekly sparse20 sparse30 sparse40 \
+  --modes split \
+  --seeds 1 2 3 \
+  --horizon 15
+```
+
+The `.identity.json` sidecar binds the checkpoint to the country, master-file
+content, origins, horizon, regimes, modes, seeds, and model settings; do not
+change those when resuming. Use a new `--out` path or explicitly pass
+`--overwrite` to start a different experiment. Omit `--max-fits` when the
+environment is persistent or you have enough time for the remaining tasks.
 
 ### Kaggle one- or two-GPU runner
 
@@ -279,7 +365,7 @@ python src/run_dual_gpu_shards.py \
   --runner ghana \
   --master data/processed/ghana_national_master.csv \
   --out results/tables/grid_ghana_split.csv \
-  --origins 60 75 90 105 \
+  --origins 45 60 75 \
   --regimes daily weekly mask \
   --modes split \
   --seeds 1 2 3 \
@@ -301,6 +387,11 @@ python src/run_dual_gpu_shards.py \
   --seeds 1 2 3 \
   --horizon 15
 ```
+
+When invoking `src/run_italy.py` directly, pass `--country italy_primary` or
+`--country italy_secondary`. Origins are validated against the master length
+and horizon; every origin must satisfy `1 <= origin <= number_of_days - horizon`.
+The default origins (45, 60, 75) fit the 91-day primary window with horizon 15.
 
 The runner sends completed results to a parent process, which alone writes the CSV checkpoint. This prevents concurrent workers from corrupting the output. A task interrupted before completion is not marked complete and is retried on the next invocation.
 
@@ -339,7 +430,33 @@ If split and joint results are written to separate CSVs, concatenate only compat
 
 ## Data-quality figure
 
-Generate the descriptive data-quality figure after preprocessing:
+Generate the descriptive data-quality figure after preprocessing. The
+Italy-secondary panel is plotted only when its audit records
+`ascertainment_mode: none`, its proxy is finite, and its post-cutoff positive
+coverage is at least as complete as its raw daily incidence. Stale or
+zero-corrupted secondary masters are rejected rather than plotted.
+
+If the secondary master was created with an older preprocessing path, back up
+the existing secondary products and regenerate them from the national raw
+source before running the figure:
+
+```bash
+PYTHONPATH=src python src/prepare_italy.py \
+  --input data/raw/italy_case_hosp.csv \
+  --outdir data/processed \
+  --arm secondary \
+  --ascertainment none \
+  --overwrite
+PYTHONPATH=src python src/sparsify.py \
+  --master data/processed/italy_secondary_national_master.csv \
+  --country italy_secondary \
+  --pct 20 30 40 \
+  --inplace
+```
+
+The preparation step replaces existing secondary products when `--overwrite`
+is supplied; back them up first. Recreate the deterministic sparse masks
+afterward because the new master does not carry the previous mask columns.
 
 ```bash
 PYTHONPATH=src python src/fig_dataquality.py
@@ -358,6 +475,7 @@ The figure should show Ghana's authentic no-report days/gap lengths, Italy-prima
 The equity analysis quantifies within-country performance loss under lower observation density and seed-to-seed stability.
 
 - **MASE gap:** deterioration relative to the same country's dense (`daily`) baseline.
+- **Absolute MASE gap and log ratio:** accompany percentage change; the percentage is left undefined when dense MASE is at or below `1e-8`, avoiding unstable divisions near zero.
 - **Ensemble IQR:** instability across random seeds for the same country, method, regime, and origin.
 
 Main Ghana–Italy-primary analysis:
@@ -370,6 +488,10 @@ PYTHONPATH=src python src/equity_metrics.py \
 ```
 
 The Italy grid must include a `country` column distinguishing `italy_primary` and `italy_secondary`. By default, Italy-secondary is excluded from the primary equity result.
+The core Ghana–Italy-primary output is restricted to origins present in both
+grids. Its audit JSON records the retained origins and percentage-gap
+denominator policy. When dense MASE is near zero, use the absolute MASE gap
+or epsilon-stabilized log MASE ratio rather than interpreting a percentage.
 
 Optional separate secondary robustness read:
 
@@ -389,9 +511,21 @@ The formal tests answer complementary questions:
 
 | Test | Question addressed |
 |---|---|
-| Wilcoxon signed-rank | Is split versus joint performance consistently different across paired origin/seed fits? |
-| Friedman test | Does performance differ across observation regimes within a country/arm and method? |
-| Mann–Whitney U | Does Ghana's authentic clustered missingness behave differently from Italy's controlled random sparsity? |
+| Wilcoxon signed-rank | Is split versus joint performance consistently different across forecast origins? |
+| Friedman test | Does performance differ across observation regimes within a country/arm and method, using forecast origins as repeated measures? |
+| Mann–Whitney U | Do origin-level Ghana clustered-missingness scores differ from Italy controlled-sparsity scores? |
+
+Seeds are repeated fits nested within each forecast origin. The tests first
+average seed-level scores within an origin, so seeds do not inflate the
+independent sample size. Country/arm comparisons remain separate; `--italy-arm
+both` runs Ghana-only tests once and adds one separately labelled
+Ghana-versus-Italy comparison per available Italy arm. Results with fewer than
+10 independent origins in any tested group are labelled
+`exploratory_insufficient_independent_origins`; meeting the 10-origin reporting
+threshold does not by itself establish confirmatory evidence, and expanding
+forecast windows may overlap across origins. Cross-country Mann–Whitney
+comparisons remain exploratory because country and data-source differences
+limit causal interpretation.
 
 Run the primary analysis:
 
@@ -417,29 +551,51 @@ Italy-secondary Mann–Whitney rows must retain their caveat: multi-wave dynamic
 
 ## R_t extraction
 
-R_t extraction is separate from the split/joint forecast grid. It uses the processed `I_proxy` series for a specified country arm and creates arm-specific trajectories, summary CSVs, and figures.
+`src/pinn.py` exposes a learned `R_net(t)` output through
+`ReducedSIRPINN.predict()`. The extractor fits that reduced-SIR PINN to the
+selected arm's full `I_proxy` series and exports the model's `R_net` output;
+it does not estimate R_t with a finite-difference formula. Since `I_proxy` is
+itself the preprocessed five-day incidence proxy, interpret the fitted curve
+as model-derived for that target series, not as an independent official
+epidemiological estimate.
 
 ```bash
 # Ghana
 PYTHONPATH=src python src/extract_rt.py \
   --master data/processed/ghana_national_master.csv \
   --country ghana \
-  --outdir results/rt
+  --outdir results/rt \
+  --modes split joint \
+  --seeds 1 2 3
 
 # Italy-primary
 PYTHONPATH=src python src/extract_rt.py \
   --master data/processed/italy_primary_national_master.csv \
   --country italy_primary \
-  --outdir results/rt
+  --outdir results/rt \
+  --modes split joint \
+  --seeds 1 2 3
 
 # Italy-secondary: optional robustness presentation
 PYTHONPATH=src python src/extract_rt.py \
   --master data/processed/italy_secondary_national_master.csv \
   --country italy_secondary \
-  --outdir results/rt
+  --outdir results/rt \
+  --modes split joint \
+  --seeds 1 2 3
 ```
 
-Do not pass `--modes` or `--seeds` to the updated R_t script. It is a full-series arm-level analysis, not a repeated grid experiment. Add external reference points only after verifying them in the cited literature; do not invent reference R_t values.
+This is a fresh full-series PINN fit, not a lookup of a previously saved
+checkpoint. Default training settings match `pinn.py` and can take substantial
+time; `--epochs-joint`, `--epochs-split-data`, `--epochs-split-ode`,
+`--collocation`, `--device`, and `--delta` expose the model configuration.
+Results are written as `rt_trajectories_<country>.csv` (date/mode/seed
+predictions), `rt_median_<country>.csv` (daily median and 10th-90th percentile
+across seeds), `rt_summary_<country>.csv` (per-fit summaries), and
+`fig_rt_<country>.png`. Inputs and fitted R_net outputs are checked for daily
+coverage, finiteness, and non-negativity before output is written. Add
+external reference points only after verifying them in the cited literature;
+do not invent reference R_t values.
 
 ## Reproducibility and checkpointing
 
@@ -526,7 +682,7 @@ If you need small synthetic examples for reproducibility, place them in `data/ex
 - Italy synthetic dropout is a controlled stress test, not authentic missingness.
 - Italy-primary is the main comparator; Italy-secondary is a separate multi-wave robustness arm.
 - Forecast performance does not establish causal effects of surveillance quality, intervention, variant dynamics, or health-system policy.
-- The inferred R_t series is model-derived and should be presented with its assumptions, not as a replacement for official epidemiological estimation.
+- The fitted R_t series is the reduced-SIR PINN's learned `R_net(t)` for the processed `I_proxy` target. Present its model/data assumptions and do not treat it as a replacement for official epidemiological estimation.
 
 ## Citation
 

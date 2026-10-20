@@ -35,7 +35,7 @@ proj/
       ghana_national_master.csv      # existing (prepare_ghana.py output)
       ghana_weekly.csv               # existing
       ghana_millevoi_format.csv      # existing
-      ghana_hospitalisation_synth.csv# NEW (SEIQHRS-derived proxy, Sec 2.4 auxiliary channel)
+      ghana_hospitalisation_synth.csv # NEW (synthetic daily admissions + occupancy diagnostics)
       italy_national_master.csv      # NEW (prepare_italy.py output, mirrors Ghana schema)
       italy_synth_sparse/            # NEW: Italy under imposed 20/30/40% dropout + weekly agg
   src/
@@ -45,10 +45,11 @@ proj/
     synth_hospitalisation.py        # NEW (SEIQHRS ODE -> H proxy)
     sparsify.py                     # NEW (imposes missingness on Italy for the sparsity axis)
     run_ghana.py                    # existing, UNCHANGED (Ghana grid engine)
+    run_ghana_hospitalisation_ablation.py # NEW (matched infection-only vs auxiliary-H fits)
     run_italy.py                    # NEW (Italy grid engine, same interface as run_ghana.py)
     run_parallel.py                 # existing, EXTENDED (--country flag)
     run_stages.py                   # existing, EXTENDED (adds italy stage)
-    extract_rt.py                   # existing, EXTENDED (adds Italy ISS Rt overlay)
+    extract_rt.py                   # fits the reduced-SIR PINN and exports R_net(t)
     equity_metrics.py               # NEW (Stage 4)
     stat_tests.py                   # NEW (Stage 6)
     fig_dataquality.py              # existing, EXTENDED to two-country panel
@@ -107,57 +108,45 @@ Expected output: `results/figures/fig_data_quality_ghana_italy.png`,
 
 ### STAGE 2 — Synthetic hospitalisation channel for Ghana (NEW)
 
-`synth_hospitalisation.py` integrates the Dwomoh et al. (2021) SEIQHRS ODE
-system, driven by Ghana's real observed infection proxy, to produce a
-model-implied H(t) series that plays the structural role Italy's real
-hospitalisation series plays in Millevoi et al.'s Cases 6-7.
+`synth_hospitalisation.py` produces explicitly model-derived sensitivity
+channels from Ghana's reported daily incidence. It does not produce observed
+hospitalisation data or replicate the Italy two-observed-channel experiment.
+The legacy `I_proxy` is verified as a trailing five-day incidence sum; the
+Dwomoh-style I input is instead approximated as a trailing 14-day sum to
+represent currently infectious people. This is an assumption, and it inherits
+the Ghana master’s zero-encoded reporting gaps.
 
 ```bash
 python src/synth_hospitalisation.py \
     --master data/processed/ghana_national_master.csv \
-    --params dwomoh_scenario5 \
     --out data/processed/ghana_hospitalisation_synth.csv
 ```
 
-Implementation sketch (Runge-Kutta 4, fixed dt=1 day, driven by observed I):
-```python
-# synth_hospitalisation.py (core logic)
-import numpy as np, pandas as pd, argparse
+The script requires a consecutive, finite, nonnegative master and verifies
+that `I_proxy` matches the documented five-day sum. It writes both
+`dH_in_synthetic_dwomoh_s2_s3` and
+`dH_in_synthetic_dwomoh_s4_s5` as training targets. The clearer
+`H_admissions_synthetic_*` aliases are numerically identical; occupancy is
+retained separately as `H_occupancy_synthetic_*` for diagnostics only.
+Scenario 1 is excluded because it yields a degenerate zero channel. Paired
+scenarios 2/3 and 4/5 are grouped where the reduced equations cannot represent
+the additional intervention distinction.
 
-PARAMS = {  # Dwomoh et al. (2021) Table 1, Scenario 5 (most complete)
-    "sigma": 1/10, "psi": 1/120, "tau": 1/120, "alpha": 1/50,
-    "xi": 1.978e-5, "delta_quarantine": 1/120,  # Q inflow rate (paper's delta, renamed
-                                                  # here to avoid clash with SIR delta)
-}
-
-def simulate_H(I_series, Q_series, params, dt=1.0):
-    """dH/dt = sigma*Q + psi*I - (tau + xi + alpha) H   (Dwomoh Eq 1.5a)
-    Driven by the REAL observed I(t) (not simulated E/I), with Q approximated
-    as a lagged fraction of I (since Ghana's real Q series does not exist).
-    This is declared explicitly as a simplification in the write-up."""
-    H = np.zeros(len(I_series))
-    out_rate = params["tau"] + params["xi"] + params["alpha"]
-    for t in range(1, len(I_series)):
-        dH = params["sigma"] * Q_series[t-1] + params["psi"] * I_series[t-1] \
-             - out_rate * H[t-1]
-        H[t] = max(H[t-1] + dH * dt, 0.0)
-    return H
-```
-
-**Mandatory labelling**: the output column is named `H_synthetic_seiqhrs`, and
-every downstream table/figure that uses it carries a footnote: "model-derived
-auxiliary channel, not observed data (Dwomoh et al. 2021 parameters)". This
-channel is used ONLY in an ablation arm (Stage 3c), never presented as
-equivalent to Italy's real hospitalisation series.
-
-**Sensitivity requirement**: repeat with Dwomoh's Scenario 1 and Scenario 3
-parameter sets (the paper's table has 5 scenarios) to bound how much the
-synthetic channel depends on assumed rates — report this range, not a point
-estimate.
+The Q equation is `dQ/dt = delta_q*I - (xi+n+sigma)*Q`; the `phi*E` term is
+omitted because no exposed E series exists. The JSON sidecar records these
+assumptions, input/master hash, scenario parameters, finite/nonnegative and
+coverage checks, and the cautious dimensional comparison to Millevoi's
+reported sigma range. `H_synthetic_seiqhrs` remains as a compatibility alias
+for the scenario 4/5 daily-admissions channel; it is not occupancy.
+Approximate paper-reported
+scenario diagnostics and visual readings from Millevoi's figure are recorded
+in the metadata as context only, never as fit targets or acceptance thresholds.
 
 ### STAGE 3 — Main experimental grid (extends `run_ghana.py`/`run_parallel.py`)
 
-Three sub-arms, all using the UNCHANGED `pinn.py` engine:
+The primary `ReducedSIRPINN` engine and its existing runners remain unchanged;
+the separate auxiliary-output ablation extends `pinn.py` without changing
+that baseline model's API:
 
 **3a. Ghana arm** — reuse `run_ghana.py` / `run_stages.py` / `run_parallel.py`
 exactly as in the course project (daily / weekly / authentic mask regimes).
@@ -167,22 +156,48 @@ but with an added synthetic-sparsification regime axis so Italy can be
 degraded step-wise from dense to Ghana-like:
 ```bash
 python src/run_italy.py \
+    --country italy_primary \
     --master data/processed/italy_national_master.csv \
     --regimes daily weekly sparse20 sparse30 sparse40 \
     --modes split joint --seeds 1 2 3 \
-    --origins 60 75 90 105 \
+    --origins 45 60 75 \
     --out results/tables/italy_grid.csv
 ```
+Use the same origins and horizon for Ghana when making the primary
+Ghana–Italy comparison; `run_ghana.py` defaults to `45 60 75` with horizon 15.
 `sparseNN` regimes are produced by `sparsify.py`, which drops NN% of days at
 random (fixed seed per regime) from the dense Italian series — this is the
 controlled variable that interpolates between "Italy dense" and "Ghana-like
 sparse", answering R2 directly.
 
-**3c. Hospitalisation ablation arm** — run Ghana's split/joint PINN twice per
-origin: once on infection-only data (as in the course project), once adding
-the synthetic H channel as a second observed series (mirroring Millevoi's
-Cases 6-7 two-channel formulation). Compare MASE_I and Rt-validity between the
-two to test whether the synthetic auxiliary channel helps or hurts.
+**3c. Hospitalisation ablation arm** — use the separate
+`ReducedSIRHospitalisationPINN` class, leaving the primary infection-only
+`ReducedSIRPINN` unchanged. The ablation adds a non-negative H output head
+that shares the infection-time feature trunk and an equally weighted,
+channel-normalized supervised daily-admissions loss at the same training
+dates as I. The published reduced-SIR residual still constrains only I and
+`R_net`; there is no H ODE residual. The dedicated runner consumes the
+audited synthesis file and verifies that it was generated from the exact
+master supplied to the run:
+
+```bash
+python src/run_ghana_hospitalisation_ablation.py \
+    --master data/processed/ghana_national_master.csv \
+    --hospitalisation data/processed/ghana_hospitalisation_synth.csv \
+    --out results/tables/ghana_hospitalisation_ablation.csv \
+    --origins 45 60 75 --horizon 15 \
+    --regimes daily weekly mask \
+    --modes split joint --seeds 34 \
+    --scenarios dwomoh_s2_s3 dwomoh_s4_s5
+```
+
+The runner pairs infection-only and auxiliary-H models at each origin,
+regime, mode, and seed. Infection and admissions normalization scales are
+estimated from training observations only. CSV results include paired MASE
+deltas and explicitly mark the H target as synthetic and model-derived; the
+JSON audit records protocol, source identity, fit/skip counts, equations, and
+scenario provenance. The output is an exploratory sensitivity ablation, not
+a reproduction of Millevoi's two-observed-channel model or a primary result.
 
 Staged execution (extends `run_stages.py` with an `italy` stage so nothing is
 lost on interruption, following the exact resume-safe pattern already built):
@@ -210,38 +225,58 @@ python src/equity_metrics.py --grid results/tables/grid.csv \
     --out results/tables/equity_summary.csv
 ```
 
-### STAGE 5 — Epidemiological validity / decision-utility (extends `extract_rt.py`)
+### STAGE 5 — PINN-derived R_t trajectories (`extract_rt.py`)
 
-Ghana: unchanged — fill in `DWOMOH_REFERENCE` from Dwomoh et al. (2021) Table 2
-Re estimates, run exactly as before.
+`ReducedSIRPINN.predict()` returns both fitted incidence and its learned
+`R_net(t)`. The extractor fits that model to the selected arm's full `I_proxy`
+series and writes the actual network output; it does not apply a finite-
+difference approximation to the input incidence. Since `I_proxy` is a
+preprocessed five-day target, the result is conditional on that target and
+model configuration, not an independent official estimate.
 
-Italy: add an ISS Rt overlay (from the `iss_rt_<region>.csv` files, national
-aggregate or a representative region) using the same script pattern:
+Run separate fits for each country arm:
 ```bash
-python src/extract_rt.py --country ghana --modes split joint --seeds 1 2 3
-python src/extract_rt.py --country italy --modes split joint --seeds 1 2 3
+python src/extract_rt.py --master data/processed/ghana_national_master.csv \
+    --country ghana --outdir results/rt --modes split joint --seeds 1 2 3
+python src/extract_rt.py --master data/processed/italy_primary_national_master.csv \
+    --country italy_primary --outdir results/rt --modes split joint --seeds 1 2 3
 ```
-Output: side-by-side `fig_rt_ghana.png` / `fig_rt_italy.png`, plus the printed
-"% of days above Rt=1" and median/range summary, for direct comparison against
-each country's independent estimate (Dwomoh vs ISS).
 
-### STAGE 6 — Statistical tests (NEW, `stat_tests.py`)
+Italy-secondary is optional and should remain a separately labelled
+multi-wave robustness arm. The output includes per-seed trajectories, daily
+median/10th-90th percentile across seeds, per-fit summaries, and one figure
+per country label. Input dates and I_proxy values, as well as fitted R_net
+outputs, are validated before writing. Default PINN training can be
+computationally expensive; use the epoch, collocation, device, and delta
+options to document any deliberate configuration change. External references
+remain absent until verified literature values are supplied.
 
-- Wilcoxon signed-rank test, split vs joint MASE, paired by (origin, seed),
-  separately within each regime and country — tests the H1 accuracy claim
-  rather than relying on percentage deltas alone.
-- Friedman test (or repeated-measures ANOVA on ranks) across regimes within a
-  schedule, to test whether degradation across daily→weekly→mask/sparse is
-  statistically distinguishable — supports H1/H2 degradation claims.
-- Mann-Whitney U test comparing MASE-gap distributions between Italy-degraded
-  and Ghana-real regimes — tests whether Ghana's authentic sparsity behaves
-  differently from an equivalent synthetic dropout level (a genuinely novel
-  empirical question this pipeline is positioned to answer).
+### STAGE 6 — Origin-aware statistical comparisons (`stat_tests.py`)
+
+- Wilcoxon signed-rank compares split and joint MASE after pairing seed fits
+  within each origin and averaging the paired scores across seeds. The
+  independent observation is the forecast origin, not each seed-origin fit.
+- Friedman compares regimes within each country/arm and method. Seed scores
+  are averaged within each origin and regime, and only complete origins enter
+  the repeated-measures test.
+- Mann–Whitney compares Ghana mask and the selected Italy sparse regime after
+  averaging seeds within each origin. Country/arm samples are kept distinct;
+  cross-country results are exploratory because country and source differences
+  limit causal interpretation.
+- `--italy-arm both` computes country-specific Wilcoxon/Friedman results once
+  and produces separate Ghana-versus-Italy comparisons for each available
+  Italy arm. It does not duplicate Ghana-only test rows or pool countries.
+- Results with fewer than 10 independent origins in any tested group are
+  labelled `exploratory_insufficient_independent_origins`. Ten is this
+  pipeline's reporting threshold, not a universal guarantee of statistical
+  adequacy. Expanding forecast windows can overlap across origins, so adequate
+  origin counts alone do not prove statistical independence.
 
 ```bash
 python src/stat_tests.py --grid results/tables/grid.csv \
     --italy-grid results/tables/italy_grid.csv \
-    --out results/tables/significance.csv
+    --out results/tables/significance.csv \
+    --italy-arm primary
 ```
 
 --------------------------------------------------------------------------
