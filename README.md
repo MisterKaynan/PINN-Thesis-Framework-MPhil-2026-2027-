@@ -75,6 +75,12 @@ python -c "import torch; print('CUDA:', torch.cuda.is_available()); print('GPUs:
 
 Run commands from the repository root. The scripts create their output directories where applicable. Keep raw inputs and large generated results out of version control unless data and output redistribution are permitted.
 
+### Local and Cloud Runs
+
+The same `src/` commands and experiment arguments work locally and in hosted notebooks such as Colab or Kaggle. Locally, keep the project, processed masters, and results on disk; on a cloud runtime, first make the project and required data available, install the same Python dependencies, and check whether the assigned runtime exposes CUDA. A GPU is optional and does not guarantee a faster fit.
+
+Cloud working disks may be temporary. Save the checkpoint CSV and its matching `.identity.json` and `.audit.json` sidecars to a mounted drive or other persistent storage, and keep the exact master CSV available at the same experiment revision. Resume with the same command, output path, and settings; changing data or settings requires a new output path. Record Python/package versions, code revision, and device details for either environment.
+
 ## Inputs and Preprocessing
 
 ### Ghana
