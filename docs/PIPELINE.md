@@ -40,6 +40,7 @@ proj/
       italy_synth_sparse/            # NEW: Italy under imposed 20/30/40% dropout + weekly agg
   src/
     pinn.py                         # existing, UNCHANGED (engine)
+    pinn_old.py                     # legacy/older PINN implementation; retained for reference, not the active engine
     prepare_ghana.py                # existing, UNCHANGED
     prepare_italy.py                # NEW
     synth_hospitalisation.py        # NEW (SEIQHRS ODE -> H proxy)
@@ -74,7 +75,7 @@ optional, see Sec 4.2.
 
 ### STAGE 1 — Preprocessing & data-quality audit (both countries)
 
-Ghana: unchanged, run exactly as the course project did.
+Ghana: unchanged, run exactly as the earlier course project did.
 ```bash
 python src/prepare_ghana.py --input data/raw/ghana_hera.csv --outdir data/processed
 ```
@@ -144,7 +145,7 @@ in the metadata as context only, never as fit targets or acceptance thresholds.
 
 ### STAGE 3 — Main experimental grid (extends `run_ghana.py`/`run_parallel.py`)
 
-The primary `ReducedSIRPINN` engine and its existing runners remain unchanged;
+The primary `ReducedSIRPINN` engine and its existing runners remain unchanged from Millevoi et al. (2024);
 the separate auxiliary-output ablation extends `pinn.py` without changing
 that baseline model's API:
 
@@ -284,13 +285,13 @@ python src/stat_tests.py --grid results/tables/grid.csv \
 
 | Check | Expected value | Source |
 |---|---|---|
-| Case4 replication, split err_I | ~0.133 (within 6% of 0.1331 published) | course project Table 1 |
-| Case4 replication, split err_Rt | ~0.49 (within 6% of 0.4744 published) | course project Table 1 |
-| Ghana daily split MASE | ~2.07 | course project Table 2 |
-| Ghana weekly split MASE | ~3.05 | course project Table 2 |
-| Ghana mask split MASE | ~2.30 | course project Table 2 |
-| Split faster than joint | ~5.7x on Ghana daily | course project Sec 4.4 |
-| Split accuracy advantage | 30.6% (daily) narrowing to 5.7% (weekly) | course project Sec 4.5 |
+| Case4 replication, split err_I | ~0.133 (within 6% of 0.1331 published) | Prior Course Project Table 1 |
+| Case4 replication, split err_Rt | ~0.49 (within 6% of 0.4744 published) | Prior Course Project Table 1 |
+| Ghana daily split MASE | ~2.07 | Prior Course Project Table 2 |
+| Ghana weekly split MASE | ~3.05 | Prior Course Project Table 2 |
+| Ghana mask split MASE | ~2.30 | Prior Course Project Table 2 |
+| Split faster than joint | ~5.7x on Ghana daily | Prior Course Project Sec 4.4 |
+| Split accuracy advantage | 30.6% (daily) narrowing to 5.7% (weekly) | Prior Course ProjectSec 4.5 |
 | Split robustness loss | 47.5% under weekly vs 8.6% for joint | course project Sec 4.5 |
 | **Italy dense split MASE (NEW, expected)** | should approach published Millevoi Case 6/7 accuracy, i.e. lower than any Ghana regime, since ISS data is dense and complete | to be measured, Stage 3b |
 | **Italy sparse40 vs Ghana mask MASE (NEW, expected)** | if the "authentic mask is worse than any synthetic dropout of similar %" finding from the course project generalises, Italy-sparse40 should still slightly outperform Ghana-mask at equivalent nominal missingness, because Ghana's gaps are batched/clustered rather than uniformly random | to be measured, Stage 4 |
@@ -299,7 +300,7 @@ python src/stat_tests.py --grid results/tables/grid.csv \
 --------------------------------------------------------------------------
 ## 4. Hardware requirements and scaling guidance
 
-### 4.1 Minimum baseline (what the course project ran on)
+### 4.1 Minimum baseline (what the Prior Course Project ran on)
 - 4-core CPU, 8 GB RAM, no GPU.
 - Validation stage: ~35 min.
 - Ghana split grid (6 origins x 3 regimes x 3 seeds = 54 fits): ~50 min.

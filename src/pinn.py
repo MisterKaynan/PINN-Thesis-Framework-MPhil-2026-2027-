@@ -261,7 +261,10 @@ class ReducedSIRPINN:
                     loss = loss + (self._residual(tb[~db]) ** 2).mean()
                 loss.backward()
                 opt.step()
-                last = float(loss.detach())
+                # Keep the minibatch loss on device. Converting it to a Python
+                # float here synchronizes CUDA after every optimizer step.
+                last = loss.detach()
+            last = float(last)
             sched.step(last)
             if ep % log_every == 0 or ep == epochs - 1:
                 self.history.append({"stage": tag, "epoch": ep, "loss": last})
