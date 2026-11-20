@@ -1,0 +1,2 @@
+country,date_start,date_end,ndays,gamma,median_Rt,min_Rt,max_Rt
+italy_primary,2020-02-20,2020-05-20,91,0.2,1.0760845300989657,-0.20385789619761296,5.5

@@ -1,0 +1,102 @@
+{
+  "audit_status": "passed",
+  "checkpoint_csv": "C:\\PythonProjects\\results\\tables\\grid_italy_primary_split_cpu.csv",
+  "checkpoint_identity_json": "C:\\PythonProjects\\results\\tables\\grid_italy_primary_split_cpu.identity.json",
+  "completed_pinn_fits": 39,
+  "country": "italy_primary",
+  "experiment_id": "85fa5ef8cf286657a5d3b0b7b1547bf7518b68e175b45ce4636082797d005ae5",
+  "identity": {
+    "collocation": 6000,
+    "country": "italy_primary",
+    "delta": 0.2,
+    "epochs_joint": 5000,
+    "epochs_split_data": 3000,
+    "epochs_split_ode": 1000,
+    "horizon": 15,
+    "master_sha256": "93aafbd073530269d90009b3662efc881f602bc1787712e0112fd60cdf029753",
+    "model_config": {
+      "batch_size": 100,
+      "batch_size_data": 10,
+      "delta": 0.2,
+      "device": "auto",
+      "epochs_joint": 5000,
+      "epochs_split_data": 3000,
+      "epochs_split_ode": 1000,
+      "hidden_H": 50,
+      "hidden_I": 50,
+      "hidden_R": 100,
+      "layers": 4,
+      "lr": 0.001,
+      "n_collocation": 6000,
+      "plateau_factor": 0.5,
+      "plateau_patience": 200
+    },
+    "modes": [
+      "split"
+    ],
+    "origins": [
+      45,
+      60,
+      75
+    ],
+    "regimes": [
+      "daily",
+      "weekly",
+      "sparse20",
+      "sparse30",
+      "sparse40"
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "newly_completed_this_session": 39,
+  "planned_pinn_fits": 45,
+  "remaining_fits_from_this_invocation": 0,
+  "skipped_fits_this_session": [
+    {
+      "mode": "split",
+      "origin": 45,
+      "reason": "fewer than 10 training points",
+      "regime": "weekly",
+      "seed": 1
+    },
+    {
+      "mode": "split",
+      "origin": 45,
+      "reason": "fewer than 10 training points",
+      "regime": "weekly",
+      "seed": 2
+    },
+    {
+      "mode": "split",
+      "origin": 45,
+      "reason": "fewer than 10 training points",
+      "regime": "weekly",
+      "seed": 3
+    },
+    {
+      "mode": "split",
+      "origin": 60,
+      "reason": "fewer than 10 training points",
+      "regime": "weekly",
+      "seed": 1
+    },
+    {
+      "mode": "split",
+      "origin": 60,
+      "reason": "fewer than 10 training points",
+      "regime": "weekly",
+      "seed": 2
+    },
+    {
+      "mode": "split",
+      "origin": 60,
+      "reason": "fewer than 10 training points",
+      "regime": "weekly",
+      "seed": 3
+    }
+  ]
+}

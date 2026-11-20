@@ -1,0 +1,35 @@
+{
+  "config": {
+    "delta": 0.2,
+    "n_collocation": 6000,
+    "hidden_I": 50,
+    "hidden_R": 100,
+    "layers": 4,
+    "lr": 0.001,
+    "epochs_joint": 5000,
+    "epochs_split_data": 3000,
+    "epochs_split_ode": 1000,
+    "batch_size": 100,
+    "batch_size_data": 10,
+    "plateau_patience": 200,
+    "plateau_factor": 0.5,
+    "seed": 34,
+    "device": "auto"
+  },
+  "case4": {
+    "split": {
+      "err_I": 0.1314058192959562,
+      "err_Rt": 0.485748533431348,
+      "published_err_I": 0.1331,
+      "published_err_Rt": 0.4744,
+      "seconds": 340.7
+    },
+    "joint": {
+      "err_I": 0.2413568496395387,
+      "err_Rt": 0.5428779721788574,
+      "published_err_I": 0.1411,
+      "published_err_Rt": 0.4961,
+      "seconds": 1968.9
+    }
+  }
+}

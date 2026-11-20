@@ -1,0 +1,47 @@
+{
+  "collocation": 6000,
+  "country": "italy_primary",
+  "delta": 0.2,
+  "epochs_joint": 5000,
+  "epochs_split_data": 3000,
+  "epochs_split_ode": 1000,
+  "horizon": 15,
+  "master_sha256": "93aafbd073530269d90009b3662efc881f602bc1787712e0112fd60cdf029753",
+  "model_config": {
+    "batch_size": 100,
+    "batch_size_data": 10,
+    "delta": 0.2,
+    "device": "auto",
+    "epochs_joint": 5000,
+    "epochs_split_data": 3000,
+    "epochs_split_ode": 1000,
+    "hidden_H": 50,
+    "hidden_I": 50,
+    "hidden_R": 100,
+    "layers": 4,
+    "lr": 0.001,
+    "n_collocation": 6000,
+    "plateau_factor": 0.5,
+    "plateau_patience": 200
+  },
+  "modes": [
+    "split"
+  ],
+  "origins": [
+    45,
+    60,
+    75
+  ],
+  "regimes": [
+    "daily",
+    "weekly",
+    "sparse20",
+    "sparse30",
+    "sparse40"
+  ],
+  "seeds": [
+    1,
+    2,
+    3
+  ]
+}
