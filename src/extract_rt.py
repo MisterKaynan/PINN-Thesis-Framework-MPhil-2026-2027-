@@ -64,6 +64,17 @@ def load_master(path: Path, country: str) -> tuple[pd.DataFrame, np.ndarray]:
         raise ValueError("I_proxy must be non-negative")
     if len(incidence) < 2 or not np.any(incidence > 0):
         raise ValueError("I_proxy needs at least two days and one positive value")
+    if country == "italy_secondary":
+        required = {"new_infections", "daily_incidence_corrected"}
+        if not required.issubset(master.columns):
+            raise ValueError("Secondary master needs source incidence columns; regenerate with --ascertainment none")
+        raw = pd.to_numeric(master["new_infections"], errors="coerce").to_numpy(float)
+        corrected = pd.to_numeric(master["daily_incidence_corrected"], errors="coerce").to_numpy(float)
+        expected = pd.Series(raw).rolling(5, min_periods=1).sum().to_numpy()
+        if not np.isfinite(raw).all() or (raw < 0).any():
+            raise ValueError("Invalid secondary source incidence")
+        if not np.allclose(corrected, raw) or not np.allclose(incidence, expected):
+            raise ValueError("Secondary must use raw incidence and its D=5 trailing proxy; regenerate with --ascertainment none")
     return master, incidence
 
 
@@ -297,7 +308,7 @@ def main() -> None:
         parser.error("--modes must contain unique modes")
     if not np.isfinite(args.delta) or args.delta <= 0:
         parser.error("--delta must be finite and positive")
-    if args.device == "cuda" and not torch.cuda.is_available():
+    if args.device == "cuda" and not __import__("torch").cuda.is_available():
         parser.error("--device cuda requested but CUDA is not available")
     master, incidence = load_master(args.master, args.country)
 

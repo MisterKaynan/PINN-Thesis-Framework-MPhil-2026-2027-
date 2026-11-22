@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Italy daily preprocessing. Primary defaults fixed r=6; secondary defaults raw.
-Restricted correction uses raw incidence after the r=6 validity cutoff. Dates/
+Restricted correction truncates at the configured validity cutoff. Dates/
 cutoff are inherited experiment choices, not newly validated epidemiological
 claims. No illustrative time-varying ratios allowed.
 """
@@ -59,10 +59,15 @@ def process(raw, arm, start=None, end=None, mode=None, missing_days="error", val
     start = start or (PRIMARY_START if arm == "primary" else str(raw.date.min().date()))
     end = end or (PRIMARY_END if arm == "primary" else str(raw.date.max().date()))
     if pd.Timestamp(start) > pd.Timestamp(end): raise ValueError("start exceeds end")
+    if mode == "restrict":
+        end = str(min(pd.Timestamp(end), pd.Timestamp(valid_end)).date())
+        if pd.Timestamp(start) > pd.Timestamp(end):
+            raise ValueError("Restricted window is empty before the validity cutoff")
+
     selected = raw.loc[raw.date.between(pd.Timestamp(start), pd.Timestamp(end))].copy()
     if selected.empty: raise ValueError("No input rows in selected window")
     # A fixed correction outside its declared validity window is a configuration
-    # error. "restrict" instead switches to reported incidence after valid_end.
+    # error. Restricted mode instead truncates the requested window.
     if mode == "fixed" and pd.Timestamp(end) > pd.Timestamp(valid_end):
         raise ValueError("Fixed r=6 beyond configured cutoff is blocked; use none or restrict")
 
@@ -81,18 +86,10 @@ def process(raw, arm, start=None, end=None, mode=None, missing_days="error", val
     master["country"] = f"italy_{arm}"
     incidence = master["new_infections"].astype(float)
 
-    # "restrict" is piecewise by design: scaled incidence through the cutoff,
-    # then raw reported incidence. It never uses zero to stand for uncertainty.
     if mode == "none":
         corrected = incidence.copy()
-    elif mode == "fixed":
-        corrected = incidence * 6.0
     else:
-        # Apply r=6 only while it is considered valid; keep observed raw
-        # incidence afterward rather than representing an unknown correction
-        # as NaN (which downstream zero-filling could misread as no cases).
-        within_validity = master.index <= pd.Timestamp(valid_end)
-        corrected = (incidence * 6.0).where(within_validity, incidence)
+        corrected = incidence * 6.0
     master["daily_incidence_corrected"] = corrected
     master["correction_defined"] = corrected.notna().astype(int)
 
@@ -126,9 +123,9 @@ def process(raw, arm, start=None, end=None, mode=None, missing_days="error", val
         missing_days_policy=missing_days, imputed_zero_days=len(missing),
         training_ready=bool(np.isfinite(master.I_proxy).all() and master.I_proxy.max() > 0),
         target_basis=("reported incidence" if mode == "none" else
-                      f"r=6-adjusted through {valid_end}; reported incidence afterward"
+                      f"r=6-adjusted; truncated at {valid_end}"
                       if mode == "restrict" else "ascertainment-adjusted incidence"),
-        notes=["Restricted mode uses raw reported incidence after valid_until; "
+        notes=["Restricted mode truncates at valid_until; "
                "unknown correction is never represented as zero.",
                "Rolling proxies are not summed as case totals.",
                "Configured dates and correction assumptions require study-specific justification.",

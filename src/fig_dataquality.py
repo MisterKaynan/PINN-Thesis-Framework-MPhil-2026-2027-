@@ -114,14 +114,9 @@ def validate_secondary_master(master: pd.DataFrame, audit_path: Path) -> dict[st
             "Italy-secondary source has no positive post-cutoff incidence; "
             "coverage cannot be validated"
         )
-    if proxy_positive < source_positive:
-        raise ValueError(
-            "Italy-secondary post-cutoff I_proxy has "
-            f"{proxy_positive}/{len(proxy)} positive days but raw "
-            f"new_infections has {source_positive}/{len(incidence)}. "
-            "The proxy is stale or corrupted; regenerate the secondary "
-            "master with --ascertainment none before plotting."
-        )
+    expected = pd.to_numeric(master["new_infections"], errors="raise").rolling(5, min_periods=1).sum()
+    if not np.allclose(master["I_proxy"].to_numpy(float), expected.to_numpy(float)):
+        raise ValueError("Secondary I_proxy does not match the full D=5 raw-incidence proxy; regenerate with --ascertainment none")
     return {
         "post_cutoff_days": len(proxy),
         "post_cutoff_source_positive_days": source_positive,
