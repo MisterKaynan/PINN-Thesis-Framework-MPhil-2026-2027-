@@ -111,9 +111,9 @@
     "compatibility_alias_matches_default_training_target": true,
     "all_scenarios_finite_nonnegative": true
   },
-  "master_csv": "C:\\PythonProjects\\data\\processed\\ghana_national_master.csv",
+  "master_csv": "D:\\Anaconda Python Files\\GitHub\\PINN-Thesis-Framework-MPhil-2026-2027-\\data\\processed\\ghana_national_master.csv",
   "master_sha256": "40af3ba762ce52fd11a80e588b3d31b539ba9b3851e6169fadf72501fccc01e0",
-  "output_csv": "C:\\PythonProjects\\data\\processed\\ghana_hospitalisation_synth.csv",
+  "output_csv": "D:\\Anaconda Python Files\\GitHub\\PINN-Thesis-Framework-MPhil-2026-2027-\\data\\processed\\ghana_hospitalisation_synth.csv",
   "output_rows": 434,
   "output_sha256": "b1a9c78b25772a52694c015b854fef9ad1b91959a5e07457608bbd4747bc471d"
 }

@@ -21,7 +21,7 @@
   "training_ready": true,
   "target_basis": "reported incidence",
   "notes": [
-    "Restricted mode uses raw reported incidence after valid_until; unknown correction is never represented as zero.",
+    "Restricted mode truncates at valid_until; unknown correction is never represented as zero.",
     "Rolling proxies are not summed as case totals.",
     "Configured dates and correction assumptions require study-specific justification.",
     "Zero imputation applies only to dates missing from the source and only when --missing-days zero is explicitly selected."

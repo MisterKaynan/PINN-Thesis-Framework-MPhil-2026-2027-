@@ -1,0 +1,32 @@
+{
+  "ghana": [
+    {
+      "path": "D:\\Anaconda Python Files\\GitHub\\PINN-Thesis-Framework-MPhil-2026-2027-\\results\\tables\\grid_ghana_split.csv",
+      "sha256": "d90f8524adb3aa238493c5a49313413ddf635871a02c8c9be697b937553eb9ab"
+    },
+    {
+      "path": "D:\\Anaconda Python Files\\GitHub\\PINN-Thesis-Framework-MPhil-2026-2027-\\results\\tables\\grid_ghana_joint.csv",
+      "sha256": "b7c75021359782d2a7d2f6278271b9f85666f85f1b142032e010ba02eab62c9f"
+    }
+  ],
+  "italy_primary": [
+    {
+      "path": "D:\\Anaconda Python Files\\GitHub\\PINN-Thesis-Framework-MPhil-2026-2027-\\results\\tables\\italy_primary_grid_split.csv",
+      "sha256": "98f5c2028cbced6cd0751cdb7e076a7c8e43ce41332100dd3f865c4e7e2d70ab"
+    },
+    {
+      "path": "D:\\Anaconda Python Files\\GitHub\\PINN-Thesis-Framework-MPhil-2026-2027-\\results\\tables\\italy_primary_grid_joint.csv",
+      "sha256": "7f31a77d1b8e4999eab89213286479209a442040c2a3dd950227c7c5ce3289d3"
+    }
+  ],
+  "italy_secondary": [
+    {
+      "path": "D:\\Anaconda Python Files\\GitHub\\PINN-Thesis-Framework-MPhil-2026-2027-\\results\\tables\\italy_secondary_grid_split.csv",
+      "sha256": "7f6c13e035ddd360159ac75ce905609f057d7ec991e73ad46eb1faf61ce1d441"
+    },
+    {
+      "path": "D:\\Anaconda Python Files\\GitHub\\PINN-Thesis-Framework-MPhil-2026-2027-\\results\\tables\\italy_secondary_grid_joint.csv",
+      "sha256": "c6f7d7eff250a49e2110e6013c21d5088415ee8edd5a0e550e75899d0932732e"
+    }
+  ]
+}
