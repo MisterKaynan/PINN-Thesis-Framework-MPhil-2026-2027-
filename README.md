@@ -1,6 +1,7 @@
 # Resumable PINN Experiments for Sparse COVID-19 Surveillance Data
 
-**Thesis:** *Physics-Informed Neural Networks for Infectious-Disease Modelling under Ghanaian Surveillance Constraints: An Adaptation of Millevoi et al.'s Compartmental Model* — Atua-Ntow, 2026/2027.
+**Proposed Title for Thesis:** *Physics-Informed Neural Networks for Infectious-Disease Modelling under Ghanaian Surveillance Constraints: An Adaptation of Millevoi et al.'s Compartmental Model* — Atua-Ntow, 2026/2027.
+
 
 This repository evaluates a reduced SIR Physics-Informed Neural Network (PINN) under incomplete surveillance. It compares Ghana's authentic reporting gaps with deterministic synthetic observation masks applied to two distinct Italy data arms. The primary scientific comparison is Ghana versus Italy-primary. Italy-secondary is an optional multi-wave robustness arm and must remain separately labelled.
 
@@ -249,7 +250,7 @@ python src/run_ghana_hospitalisation_ablation.py \
   --scenarios dwomoh_s2_s3 dwomoh_s4_s5
 ```
 
-Both scripts write audit metadata. The runner verifies synthesis provenance and date alignment, uses training-only normalization, and reports paired infection-only versus auxiliary-channel results. Keep the synthetic origin of H explicit in all tables and reporting.
+Both scripts write audit metadata. The runner verifies synthesis provenance and date alignment, uses training-only normalisation, and reports paired infection-only versus auxiliary-channel results. Keep the synthetic origin of H explicit in all tables and reporting.
 
 ## PINN-Derived $R_t$
 
@@ -296,4 +297,4 @@ If you use or adapt the PINN method, cite Millevoi, Pasetto, and Ferronato (2024
 }
 ```
 
-Choose a software license before public release. Data licensing is separate; do not assume source surveillance data can be redistributed under the software license.
+I would have to choose a software license before public release. Data licensing is separate; do not assume source surveillance data can be redistributed under the software license.
