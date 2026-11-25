@@ -1,0 +1,17 @@
+country,method,regime,median,count
+ghana,pinn_joint,daily,6.449979075650795,15
+ghana,pinn_joint,mask,8.752360505426637,15
+ghana,pinn_joint,weekly,2.7331284643783467,9
+ghana,pinn_split,daily,4.886927285543208,12
+ghana,pinn_split,mask,5.948914101800028,12
+ghana,pinn_split,weekly,1.810390947099032,6
+italy_primary,pinn_joint,daily,1.9389983610666122,9
+italy_primary,pinn_joint,sparse20,3.213147420908312,9
+italy_primary,pinn_joint,sparse30,2.1897620569088456,9
+italy_primary,pinn_joint,sparse40,2.914486703666185,9
+italy_primary,pinn_joint,weekly,2.294216475069004,3
+italy_primary,pinn_split,daily,2.1386657901624444,9
+italy_primary,pinn_split,sparse20,1.5912862993152408,9
+italy_primary,pinn_split,sparse30,2.1779250003926376,9
+italy_primary,pinn_split,sparse40,2.190164624625686,9
+italy_primary,pinn_split,weekly,1.6812784263581149,3

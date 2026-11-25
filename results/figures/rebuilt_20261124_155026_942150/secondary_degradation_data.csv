@@ -1,0 +1,11 @@
+country,method,regime,median,count
+italy_secondary,pinn_joint,daily,0.893791914017878,12
+italy_secondary,pinn_joint,sparse20,1.2277225873626714,12
+italy_secondary,pinn_joint,sparse30,1.2795738424523668,12
+italy_secondary,pinn_joint,sparse40,1.0281828931282333,12
+italy_secondary,pinn_joint,weekly,1.0723309380977377,12
+italy_secondary,pinn_split,daily,1.1464854452918254,15
+italy_secondary,pinn_split,sparse20,0.9446058577865811,15
+italy_secondary,pinn_split,sparse30,1.055726857029529,15
+italy_secondary,pinn_split,sparse40,1.0716615227945685,15
+italy_secondary,pinn_split,weekly,1.443909725261123,15
